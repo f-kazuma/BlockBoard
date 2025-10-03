@@ -1,0 +1,70 @@
+
+> my-v0-project@0.1.0 dev /Users/kazuma/Downloads/blockboard
+> next dev -p 3000 -H 127.0.0.1
+
+  ▲ Next.js 14.2.16
+  - Local:        http://127.0.0.1:3000
+  - Network:      http://127.0.0.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 1904ms
+ ○ Compiling / ...
+ ✓ Compiled / in 3.2s (722 modules)
+ GET / 200 in 3372ms
+ ✓ Compiled in 383ms (713 modules)
+ ✓ Compiled in 232ms (713 modules)
+ GET / 200 in 110ms
+ ✓ Compiled in 327ms (713 modules)
+ GET / 200 in 120ms
+ ✓ Compiled in 330ms (713 modules)
+ GET / 200 in 130ms
+ GET / 200 in 46ms
+ ✓ Compiled in 525ms (713 modules)
+ ✓ Compiled in 408ms (713 modules)
+ GET / 200 in 91ms
+ ✓ Compiled in 345ms (713 modules)
+ ✓ Compiled in 294ms (713 modules)
+ ✓ Compiled in 431ms (713 modules)
+ ✓ Compiled in 242ms (713 modules)
+ ✓ Compiled in 138ms (713 modules)
+ ✓ Compiled in 198ms (713 modules)
+ GET / 200 in 130ms
+ ✓ Compiled in 318ms (713 modules)
+ ✓ Compiled in 217ms (713 modules)
+ ✓ Compiled in 320ms (713 modules)
+ GET / 200 in 142ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 523ms (702 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 559ms
+ ✓ Compiled in 245ms (716 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 93ms
+ ✓ Compiled in 360ms (713 modules)
+ ✓ Compiled /_not-found in 347ms (702 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 431ms
+ ✓ Compiled in 673ms (713 modules)
+ ✓ Compiled in 320ms (713 modules)
+ ✓ Compiled in 178ms (366 modules)
+ ✓ Compiled in 505ms (713 modules)
+ ✓ Compiled in 239ms (713 modules)
+ ✓ Compiled in 234ms (713 modules)
+ ✓ Compiled in 389ms (713 modules)
+ ✓ Compiled in 433ms (713 modules)
+ ✓ Compiled in 211ms (713 modules)
+ ✓ Compiled in 249ms (713 modules)
+ ✓ Compiled in 315ms (713 modules)
+ ✓ Compiled in 186ms (366 modules)
+ ✓ Compiled in 295ms (713 modules)
+ GET / 200 in 142ms
+ ✓ Compiled in 314ms (713 modules)
+ ✓ Compiled in 267ms (713 modules)
+ ✓ Compiled in 215ms (713 modules)
+ ✓ Compiled in 624ms (713 modules)
+ ✓ Compiled in 155ms (713 modules)
+ ✓ Compiled in 160ms (713 modules)
+ ✓ Compiled in 1697ms (366 modules)
+ ✓ Compiled in 209ms (366 modules)
+ ✓ Compiled in 760ms (717 modules)
+ ✓ Compiled in 277ms (717 modules)
+ ✓ Compiled in 1160ms (717 modules)
+ GET / 200 in 694ms
+ GET / 200 in 63ms
