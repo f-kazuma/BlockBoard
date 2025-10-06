@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useMemo, useRef, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import type { TimeBlock, AppSettings } from "@/lib/types"
 import { TimelineGrid } from "./timeline-grid"
 import { TimeBlockCard } from "./time-block-card"
@@ -26,11 +24,13 @@ interface TimelineViewProps {
   onRemoveTodo?: (blockId: string, todoId: string) => void
   onDropTaskToBlock?: (blockId: string) => void
   onSetTodoDoing?: (blockId: string, todoId: string) => void
+  isToday?: boolean
 }
 
 export function TimelineView({
   blocks,
   settings,
+  isToday,
   onEditBlock,
   onDeleteBlock,
   onResizeStart,
@@ -48,6 +48,7 @@ export function TimelineView({
   const { dayStart, dayEnd, snapInterval } = settings
   const containerRef = useRef<HTMLDivElement>(null)
   const [hoverY, setHoverY] = useState<number | null>(null)
+  const [nowY, setNowY] = useState<number | null>(null)
 
   // Calculate pixel height per minute (60px per hour = 1px per minute)
   const pixelsPerMinute = 60 / 60
@@ -96,6 +97,18 @@ export function TimelineView({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return
+
+    const target = e.target as HTMLElement
+    // When hovering over blocks or interactive elements, hide hover line
+    if (
+      target.closest('[data-block-card]') ||
+      target.closest('[data-resize-handle]') ||
+      target.closest('button,[role="menuitem"],input,textarea,select,details,summary,a,[contenteditable="true"]')
+    ) {
+      if (hoverY !== null) setHoverY(null)
+      return
+    }
+
     const rect = containerRef.current.getBoundingClientRect()
     const y = e.clientY - rect.top
     const minutesFromStart = Math.round(y / pixelsPerMinute)
@@ -107,6 +120,29 @@ export function TimelineView({
   const handleMouseLeave = () => {
     setHoverY(null)
   }
+
+  // Current time indicator
+  React.useEffect(() => {
+    const updateNow = () => {
+      if (!isToday) {
+        setNowY(null)
+        return
+      }
+      const now = new Date()
+      const minutes = now.getHours() * 60 + now.getMinutes()
+      const start = dayStart * 60
+      const end = dayEnd * 60
+      if (minutes < start || minutes > end) {
+        setNowY(null)
+      } else {
+        const y = (minutes - start) * pixelsPerMinute
+        setNowY(y)
+      }
+    }
+    updateNow()
+    const id = setInterval(updateNow, 30000)
+    return () => clearInterval(id)
+  }, [isToday, dayStart, dayEnd, pixelsPerMinute])
 
   return (
     <div className="relative">
@@ -134,6 +170,13 @@ export function TimelineView({
           <div
             className="absolute left-16 right-0 h-0.5 bg-primary/50 pointer-events-none z-20"
             style={{ top: `${hoverY}px` }}
+          />
+        )}
+
+        {nowY !== null && (
+          <div
+            className="absolute left-16 right-0 h-0.5 bg-red-500 dark:bg-red-400 pointer-events-none z-30"
+            style={{ top: `${nowY}px` }}
           />
         )}
 

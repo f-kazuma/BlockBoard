@@ -35,6 +35,7 @@ export default function Home() {
   const [settings, setSettings] = useState(() => storage.getSettings())
   const timelineRef = useRef<HTMLDivElement>(null)
   const [justFinishedResizing, setJustFinishedResizing] = useState(false)
+  const [justFinishedDragging, setJustFinishedDragging] = useState(false)
 
   // Load tasks on mount
   useEffect(() => {
@@ -100,6 +101,9 @@ export default function Home() {
 
     const handleMouseUp = () => {
       setDraggedBlock(null)
+      // Prevent timeline click-to-add from firing right after dragging a block
+      setJustFinishedDragging(true)
+      setTimeout(() => setJustFinishedDragging(false), 120)
     }
 
     if (draggedBlock) {
@@ -253,7 +257,12 @@ export default function Home() {
       // Update blocks state
       const nextBlocks = prev.map((b) =>
         b.id === blockId
-          ? { ...b, todos: (b.todos || []).map((t) => (t.id === todoId ? { ...t, done: !t.done } : t)) }
+          ? {
+              ...b,
+              todos: (b.todos || []).map((t) =>
+                t.id === todoId ? { ...t, done: !t.done, doing: t.done ? t.doing : false } : t,
+              ),
+            }
           : b,
       )
 
@@ -263,6 +272,35 @@ export default function Home() {
           prevTasks.map((tsk) =>
             tsk.id === todo.taskId ? { ...tsk, status: "done" as const, completedAt: new Date() } : tsk,
           ),
+        )
+        // Also mark all linked todos as done and not doing
+        setBlocks((p) =>
+          p.map((b) => ({
+            ...b,
+            todos: (b.todos || []).map((td) =>
+              td.taskId === todo.taskId ? { ...td, done: true, doing: false } : td,
+            ),
+          })),
+        )
+      }
+
+      // If unchecked, reflect back to kanban: revert to doing if marked, otherwise todo
+      if (todo?.taskId && newDone === false) {
+        setTasks((prevTasks) =>
+          prevTasks.map((tsk) =>
+            tsk.id === todo.taskId
+              ? { ...tsk, status: (todo.doing ? "doing" : "todo") as const, completedAt: undefined }
+              : tsk,
+          ),
+        )
+        // Uncheck all linked todos
+        setBlocks((p) =>
+          p.map((b) => ({
+            ...b,
+            todos: (b.todos || []).map((td) =>
+              td.taskId === todo.taskId ? { ...td, done: false } : td,
+            ),
+          })),
         )
       }
 
@@ -288,6 +326,14 @@ export default function Home() {
     const taskId = todo?.taskId
     if (!taskId) return
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: "doing" as const } : t)))
+    // Reflect doing state on the linked todo
+    setBlocks((prev) =>
+      prev.map((b) =>
+        b.id === blockId
+          ? { ...b, todos: (b.todos || []).map((td) => (td.id === todoId ? { ...td, doing: true } : td)) }
+          : b,
+      ),
+    )
   }
 
   const handleBlockDragStart = (block: TimeBlock) => {
@@ -338,7 +384,7 @@ export default function Home() {
         setOverlapDialogOpen(true)
       } else {
         setBlocks((prev) => [...prev, newBlock])
-        setTasks((prev) => prev.map((t) => (t.id === draggedTask.id ? { ...t, status: "doing" as const } : t)))
+        // Do not auto-change task status when added to timeline
       }
       setDraggedTask(null)
     }
@@ -372,7 +418,7 @@ export default function Home() {
   }
 
   const handleTimelineClick = (startTime: Date) => {
-    if (justFinishedResizing || draggedBlock || resizingBlock) return
+    if (justFinishedResizing || justFinishedDragging || draggedBlock || resizingBlock) return
     setEditingBlock(undefined)
     setQuickEventStartTime(startTime)
     setBlockDialogOpen(true)
@@ -401,14 +447,10 @@ export default function Home() {
       })
 
       setBlocks([...newBlocks, pendingBlock])
-      if (pendingBlock.taskId && pendingBlock.type === "task") {
-        setTasks((prev) => prev.map((t) => (t.id === pendingBlock.taskId ? { ...t, status: "doing" as const } : t)))
-      }
+      // Do not auto-change task status when resolving overlaps
     } else if (action === "allow") {
       setBlocks((prev) => [...prev, pendingBlock])
-      if (pendingBlock.taskId && pendingBlock.type === "task") {
-        setTasks((prev) => prev.map((t) => (t.id === pendingBlock.taskId ? { ...t, status: "doing" as const } : t)))
-      }
+      // Do not auto-change task status when resolving overlaps
     }
 
     setPendingBlock(null)
@@ -474,6 +516,30 @@ export default function Home() {
                     : t,
                 ),
               )
+              // Sync timeline todos linked to this task
+              setBlocks((prev) =>
+                prev.map((b) =>
+                  b.todos && b.todos.length > 0
+                    ? {
+                        ...b,
+                        todos: b.todos.map((td) =>
+                          td.taskId === draggedTask.id
+                            ? {
+                                ...td,
+                                done: status === "done" ? true : false,
+                                doing:
+                                  status === "doing"
+                                    ? true
+                                    : status === "todo" || status === "done"
+                                    ? false
+                                    : td.doing,
+                              }
+                            : td,
+                        ),
+                      }
+                    : b,
+                ),
+              )
               setDraggedTask(null)
             }}
           />
@@ -484,6 +550,7 @@ export default function Home() {
           <TimelineView
             blocks={blocks}
             settings={settings}
+            isToday={isToday}
             onEditBlock={handleEditBlock}
             onDeleteBlock={handleDeleteBlock}
             onResizeStart={handleResizeStart}

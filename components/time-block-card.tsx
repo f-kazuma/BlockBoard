@@ -6,6 +6,17 @@ import { Button } from "@/components/ui/button"
 import { MoreVertical, Clock, Calendar, CheckSquare } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { formatTime } from "@/lib/date-utils"
+import { useEffect, useRef, useState } from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 function withAlpha(color: string, alpha: number): string {
   const hex = color.trim()
@@ -43,12 +54,27 @@ interface TimeBlockCardProps {
 }
 
 export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeStart, onDragStart, onToggleTodo, onAddTodo, onRemoveTodo, onDropTaskToBlock, onSetTodoDoing }: TimeBlockCardProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
   const duration = Math.round((block.endTime.getTime() - block.startTime.getTime()) / (1000 * 60))
 
   const isEvent = block.type === "event"
   const zIndex = isEvent ? "z-0" : "z-10"
   const baseColor = block.color || "#6366f1"
   const bgColor = isEvent ? withAlpha(baseColor, 0.6) : baseColor
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDocDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement
+      if (menuRef.current && !menuRef.current.contains(t)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocDown)
+    return () => document.removeEventListener('mousedown', onDocDown)
+  }, [menuOpen])
 
   return (
     <Card
@@ -81,6 +107,7 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
         // Skip interactive elements to avoid hijacking clicks
         if (
           target.closest("button") ||
+          target.closest('[data-slot="dropdown-menu-trigger"]') ||
           target.closest('[role="menuitem"]') ||
           target.closest("[data-resize-handle]") ||
           target.closest("input,textarea,select,details,summary,a,[contenteditable='true']")
@@ -108,19 +135,21 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
     >
       <div
         data-resize-handle="top"
-        className="absolute -top-1 left-0 right-0 h-6 cursor-ns-resize z-40 flex items-center justify-center group/handle"
-        onMouseDown={(e) => {
-          console.log("[v0] Top resize handle mousedown")
-          e.preventDefault()
-          e.stopPropagation()
-          onResizeStart(block, "top")
-        }}
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-        }}
+        className="absolute -top-1 left-0 right-0 h-6 z-40 flex items-center justify-center group/handle pointer-events-none"
       >
-        <div className="w-16 h-1 bg-white/40 rounded-full group-hover/handle:bg-white/80 group-hover/handle:h-1.5 transition-all" />
+        <div
+          className="w-16 h-1 bg-white/40 rounded-full group-hover/handle:bg-white/80 group-hover/handle:h-1.5 transition-all cursor-ns-resize pointer-events-auto"
+          onMouseDown={(e) => {
+            console.log("[v0] Top resize handle mousedown")
+            e.preventDefault()
+            e.stopPropagation()
+            onResizeStart(block, "top")
+          }}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        />
       </div>
 
       <div>
@@ -146,7 +175,12 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
             {block.todos && block.todos.length > 0 && (
               <div className="mt-2 space-y-1">
                 {block.todos.slice(0, 5).map((t) => (
-                  <label key={t.id} className="flex items-center gap-2 text-xs text-white/95 select-none">
+                  <label
+                    key={t.id}
+                    className={`group/todo flex items-center gap-2 text-xs select-none rounded px-1 py-0.5 transition-colors ${
+                      t.doing ? "bg-white/20 ring-1 ring-white/30 text-white" : "text-white/95"
+                    } ${t.done ? "opacity-80" : ""}`}
+                  >
                     <input
                       type="checkbox"
                       checked={t.done}
@@ -158,15 +192,15 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
                     />
                     <span className={t.done ? "line-through opacity-80" : ""}>{t.text}</span>
                     <span className="ml-auto flex items-center gap-2">
-                      {!t.done && onSetTodoDoing && (
+                      {!t.done && onSetTodoDoing && !t.doing && (
                         <button
-                          className="text-white/80 hover:text-white underline-offset-2 hover:underline"
+                          className="text-white/80 hover:text-white underline-offset-2 hover:underline opacity-0 group-hover/todo:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation()
                             onSetTodoDoing(block.id, t.id)
                           }}
                         >
-                          Doing
+                          開始
                         </button>
                       )}
                       {onRemoveTodo && (
@@ -188,42 +222,90 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
             {/* Inline add input removed per request; use DnD or dialog */}
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20 text-white"
+          <div className="relative" ref={menuRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 transition-opacity hover:bg-white/20 text-white relative z-50"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+                setMenuOpen((v) => !v)
+              }}
+            >
+              <MoreVertical className="h-3.5 w-3.5" />
+            </Button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-6 z-[9999] min-w-36 rounded-md border bg-popover text-popover-foreground shadow-md p-1"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(block)}>編集</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(block.id)} className="text-destructive">
-                削除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <button
+                  className="w-full text-left text-sm rounded-sm px-2 py-1.5 hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onEdit(block)
+                  }}
+                >
+                  編集
+                </button>
+                <button
+                  className="w-full text-left text-sm rounded-sm px-2 py-1.5 text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setConfirmOpen(true)
+                  }}
+                >
+                  削除
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Delete confirmation dialog */}
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>削除しますか？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  「{block.title}」をタイムラインから削除します。この操作は元に戻せません。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>キャンセル</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete(block.id)
+                  }}
+                >
+                  削除
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
       <div
         data-resize-handle="bottom"
-        className="absolute -bottom-1 left-0 right-0 h-6 cursor-ns-resize z-40 flex items-center justify-center group/handle"
-        onMouseDown={(e) => {
-          console.log("[v0] Bottom resize handle mousedown")
-          e.preventDefault()
-          e.stopPropagation()
-          onResizeStart(block, "bottom")
-        }}
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-        }}
+        className="absolute -bottom-1 left-0 right-0 h-6 z-40 flex items-center justify-center group/handle pointer-events-none"
       >
-        <div className="w-16 h-1 bg-white/40 rounded-full group-hover/handle:bg-white/80 group-hover/handle:h-1.5 transition-all" />
+        <div
+          className="w-16 h-1 bg-white/40 rounded-full group-hover/handle:bg-white/80 group-hover/handle:h-1.5 transition-all cursor-ns-resize pointer-events-auto"
+          onMouseDown={(e) => {
+            console.log("[v0] Bottom resize handle mousedown")
+            e.preventDefault()
+            e.stopPropagation()
+            onResizeStart(block, "bottom")
+          }}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        />
       </div>
     </Card>
   )

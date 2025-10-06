@@ -6,6 +6,7 @@ export interface BlockTodo {
   id: string
   text: string
   done: boolean
+  doing?: boolean
   taskId?: string // if originated from a Kanban task
 }
 
