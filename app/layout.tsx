@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   title: "BlockBoard - スケジュール × カンバン",
   description: "ドラッグ＆ドロップで1日を計画する",
   generator: "v0.app",
+  icons: {
+    icon: "/placeholder-logo.svg",
+  },
 }
 
 export default function RootLayout({
