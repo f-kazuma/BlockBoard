@@ -9,6 +9,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/placeholder-logo.svg',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig
