@@ -200,6 +200,8 @@ export default function Home() {
         notes: taskData.notes,
         createdAt: new Date(),
         dueDate: taskData.dueDate,
+        // 看板は日別に表示するため、作成時に当日の文字列を保持
+        scheduledDate: formatDate(selectedDate),
       }
       setTasks((prev) => [...prev, newTask])
     }
@@ -526,24 +528,35 @@ export default function Home() {
         {/* Kanban Board */}
         <div className="w-[400px] border-r border-border bg-card p-6 overflow-y-auto">
           <KanbanBoard
-            tasks={tasks}
+            tasks={(() => {
+              const dateStr = formatDate(selectedDate)
+              // 当日分のみ表示。保留だけは全日表示
+              return tasks.filter((t) =>
+                t.status === "hold"
+                  ? true
+                  : (t.scheduledDate ? t.scheduledDate === dateStr : formatDate(t.createdAt) === dateStr),
+              )
+            })()}
             onAddTask={handleAddTask}
             onEditTask={handleEditTask}
             onDeleteTask={handleDeleteTask}
             onDragStart={handleTaskDragStart}
             onDropToStatus={(status) => {
               if (!draggedTask) return
-              setTasks((prev) =>
-                prev.map((t) =>
+              setTasks((prev) => {
+                const dateStr = formatDate(selectedDate)
+                return prev.map((t) =>
                   t.id === draggedTask.id
                     ? {
                         ...t,
                         status,
+                        // 保留から他列へ移動した場合など、日付を現在日に合わせる
+                        scheduledDate: status === "hold" ? (t.scheduledDate || dateStr) : dateStr,
                         completedAt: status === "done" ? new Date() : undefined,
                       }
                     : t,
-                ),
-              )
+                )
+              })
               // Sync timeline todos linked to this task
               setBlocks((prev) =>
                 prev.map((b) =>

@@ -20,6 +20,8 @@ export interface Task {
   createdAt: Date
   completedAt?: Date
   dueDate?: Date // 期限
+  // 日付ごとの看板表示用（YYYY-MM-DD）。未設定の場合は createdAt の日付で扱う
+  scheduledDate?: string
 }
 
 export interface TimeBlock {
