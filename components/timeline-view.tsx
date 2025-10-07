@@ -146,7 +146,7 @@ export function TimelineView({
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6 pl-16">
         <h2 className="text-lg font-semibold text-foreground">タイムライン</h2>
         <Button onClick={onAddEvent} size="sm" variant="outline">
           <Plus className="h-4 w-4 mr-1" />

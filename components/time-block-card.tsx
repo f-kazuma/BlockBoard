@@ -3,7 +3,8 @@
 import type { TimeBlock, BlockTodo } from "@/lib/types"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MoreVertical, Clock, Calendar, CheckSquare } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { MoreVertical, Clock, Calendar, CheckSquare, Play, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { formatTime } from "@/lib/date-utils"
 import { useEffect, useRef, useState } from "react"
@@ -104,12 +105,12 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
         const offsetY = e.clientY - rect.top
         const EDGE_THRESHOLD = 10
 
-        // Skip interactive elements to avoid hijacking clicks
+        // Skip only task area, menu button/overlay, resize handles, and native inputs
         if (
-          target.closest("button") ||
-          target.closest('[data-slot="dropdown-menu-trigger"]') ||
-          target.closest('[role="menuitem"]') ||
-          target.closest("[data-resize-handle]") ||
+          target.closest('[data-todo-area]') ||
+          target.closest('[data-menu-button]') ||
+          target.closest('[data-menu-overlay]') ||
+          target.closest('[data-resize-handle]') ||
           target.closest("input,textarea,select,details,summary,a,[contenteditable='true']")
         ) {
           return
@@ -173,49 +174,77 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
 
             {/* Block Todos */}
             {block.todos && block.todos.length > 0 && (
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 space-y-1.5" data-todo-area>
                 {block.todos.slice(0, 5).map((t) => (
-                  <label
+                  <div
                     key={t.id}
-                    className={`group/todo flex items-center gap-2 text-xs select-none rounded px-1 py-0.5 transition-colors ${
-                      t.doing ? "bg-white/20 ring-1 ring-white/30 text-white" : "text-white/95"
-                    } ${t.done ? "opacity-80" : ""}`}
+                    className={`group/todo flex items-center gap-2 rounded-md border px-2 py-1 text-xs transition-colors cursor-default ${
+                      t.done
+                        ? "bg-green-500/20 border-green-400/40 ring-1 ring-green-400/30"
+                        : t.doing
+                        ? "bg-white/20 border-white/30 ring-1 ring-white/30"
+                        : "bg-white/10 border-white/15 hover:bg-white/15"
+                    }`}
+                    
                   >
-                    <input
-                      type="checkbox"
-                      checked={t.done}
-                      onChange={(e) => {
+                    <div
+                      className="relative z-10 cursor-pointer"
+                      onClick={(e) => {
                         e.stopPropagation()
                         onToggleTodo?.(block.id, t.id)
                       }}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <span className={t.done ? "line-through opacity-80" : ""}>{t.text}</span>
-                    <span className="ml-auto flex items-center gap-2">
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        checked={t.done}
+                        className="border-white/70 data-[state=checked]:bg-white data-[state=checked]:text-black pointer-events-none"
+                      />
+                    </div>
+                    <span
+                      className={`truncate cursor-pointer ${
+                        t.done ? "line-through text-green-200" : "text-white"
+                      }`}
+                    >
+                      {t.text}
+                    </span>
+
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {t.done && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/30 text-green-200">完了</span>
+                      )}
+                      {t.doing && !t.done && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/25 text-white/95">進行中</span>
+                      )}
                       {!t.done && onSetTodoDoing && !t.doing && (
-                        <button
-                          className="text-white/80 hover:text-white underline-offset-2 hover:underline opacity-0 group-hover/todo:opacity-100 transition-opacity"
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-white/85 hover:text-white hover:bg-white/20 opacity-0 group-hover/todo:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation()
                             onSetTodoDoing(block.id, t.id)
                           }}
+                          aria-label="開始"
                         >
-                          開始
-                        </button>
+                          <Play className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                       {onRemoveTodo && (
-                        <button
-                          className="text-white/80 hover:text-white"
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-white/85 hover:text-white hover:bg-white/20 opacity-0 group-hover/todo:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation()
                             onRemoveTodo(block.id, t.id)
                           }}
+                          aria-label="削除"
                         >
-                          ×
-                        </button>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </span>
-                  </label>
+                  </div>
                 ))}
               </div>
             )}
@@ -226,7 +255,8 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 transition-opacity hover:bg-white/20 text-white relative z-50"
+              className="h-6 w-6 transition-opacity hover:bg-white/20 text-white relative z-50 cursor-default"
+              data-menu-button
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -238,7 +268,8 @@ export function TimeBlockCard({ block, hasOverlap, onEdit, onDelete, onResizeSta
             </Button>
             {menuOpen && (
               <div
-                className="absolute right-0 top-6 z-[9999] min-w-36 rounded-md border bg-popover text-popover-foreground shadow-md p-1"
+                className="absolute right-0 top-6 z-[9999] min-w-28 rounded-md border bg-popover text-popover-foreground shadow-md p-1"
+                data-menu-overlay
                 onClick={(e) => e.stopPropagation()}
               >
                 <button

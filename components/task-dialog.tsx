@@ -17,21 +17,24 @@ interface TaskDialogProps {
 
 export function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
   const [title, setTitle] = useState("")
-  const [duration, setDuration] = useState(30)
+  const [duration, setDuration] = useState("")
   const [notes, setNotes] = useState("")
   const [color, setColor] = useState("#6366f1")
+  const [dueDate, setDueDate] = useState("")
 
   useEffect(() => {
     if (task) {
       setTitle(task.title)
-      setDuration(task.duration)
+      setDuration(task.duration ? task.duration.toString() : "")
       setNotes(task.notes || "")
       setColor(task.color || "#6366f1")
+      setDueDate(task.dueDate ? task.dueDate.toISOString().split('T')[0] : "")
     } else {
       setTitle("")
-      setDuration(30)
+      setDuration("")
       setNotes("")
       setColor("#6366f1")
+      setDueDate("")
     }
   }, [task, open])
 
@@ -40,9 +43,10 @@ export function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
 
     onSave({
       title: title.trim(),
-      duration,
+      duration: duration ? Number(duration) : undefined,
       notes: notes.trim() || undefined,
       color,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
     })
 
     onClose()
@@ -62,7 +66,7 @@ export function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="duration">所要時間（分）</Label>
+            <Label htmlFor="duration">所要時間（分・任意）</Label>
             <Input
               id="duration"
               type="number"
@@ -70,12 +74,23 @@ export function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
               max={240}
               step={5}
               value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
+              onChange={(e) => setDuration(e.target.value)}
+              placeholder="未設定"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="color">カラー</Label>
+            <Label htmlFor="dueDate">期限（任意）</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-sm font-medium">カラー</div>
             <div className="flex gap-2">
               {["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f97316", "#eab308", "#22c55e", "#14b8a6"].map((c) => (
                 <button

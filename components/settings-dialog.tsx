@@ -47,9 +47,9 @@ export function SettingsDialog({ open, settings, onClose, onSave }: SettingsDial
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>1日の開始時刻</Label>
+            <div id="settings-daystart-label" className="text-sm font-medium">1日の開始時刻</div>
             <Select value={dayStart.toString()} onValueChange={(v) => setDayStart(Number(v))}>
-              <SelectTrigger>
+              <SelectTrigger aria-labelledby="settings-daystart-label">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -63,9 +63,9 @@ export function SettingsDialog({ open, settings, onClose, onSave }: SettingsDial
           </div>
 
           <div className="space-y-2">
-            <Label>1日の終了時刻</Label>
+            <div id="settings-dayend-label" className="text-sm font-medium">1日の終了時刻</div>
             <Select value={dayEnd.toString()} onValueChange={(v) => setDayEnd(Number(v))}>
-              <SelectTrigger>
+              <SelectTrigger aria-labelledby="settings-dayend-label">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -79,9 +79,9 @@ export function SettingsDialog({ open, settings, onClose, onSave }: SettingsDial
           </div>
 
           <div className="space-y-2">
-            <Label>スナップ間隔</Label>
+            <div id="settings-snap-label" className="text-sm font-medium">スナップ間隔</div>
             <Select value={snapInterval.toString()} onValueChange={(v) => setSnapInterval(Number(v))}>
-              <SelectTrigger>
+              <SelectTrigger aria-labelledby="settings-snap-label">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -94,9 +94,9 @@ export function SettingsDialog({ open, settings, onClose, onSave }: SettingsDial
           </div>
 
           <div className="space-y-2">
-            <Label>週の開始曜日</Label>
+            <div id="settings-weekstart-label" className="text-sm font-medium">週の開始曜日</div>
             <Select value={weekStart.toString()} onValueChange={(v) => setWeekStart(Number(v))}>
-              <SelectTrigger>
+              <SelectTrigger aria-labelledby="settings-weekstart-label">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

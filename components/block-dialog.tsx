@@ -96,9 +96,9 @@ export function BlockDialog({
 
         <div className="space-y-4 py-4">
           {!block && (
-            <div className="space-y-2">
-              <Label>種類</Label>
-              <div className="grid grid-cols-2 gap-2">
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">種類</legend>
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="ブロック種類">
                 <Button
                   type="button"
                   variant={type === "event" ? "default" : "outline"}
@@ -118,7 +118,7 @@ export function BlockDialog({
                   タスク
                 </Button>
               </div>
-            </div>
+            </fieldset>
           )}
 
           <div className="space-y-2">
@@ -139,7 +139,7 @@ export function BlockDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="color">カラー</Label>
+            <div className="text-sm font-medium">カラー</div>
             <div className="flex gap-2">
               {["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f97316", "#eab308", "#22c55e", "#14b8a6"].map((c) => (
                 <button
@@ -168,8 +168,8 @@ export function BlockDialog({
         </div>
 
         <div className="space-y-2">
-          <Label>ToDo（任意）</Label>
-          <div className="space-y-2">
+          <div id="block-todos-label" className="text-sm font-medium">ToDo（任意）</div>
+          <div className="space-y-2" role="group" aria-labelledby="block-todos-label">
             {todos.map((t) => (
               <div key={t.id} className="flex items-center gap-2">
                 <input

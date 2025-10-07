@@ -2,9 +2,10 @@ import type { Task, DaySchedule, AppSettings } from "./types"
 
 const STORAGE_KEYS = {
   TASKS: "blockboard_tasks",
-  SCHEDULES: "blockboard_schedules",
   SETTINGS: "blockboard_settings",
 }
+
+const SCHEDULE_COOKIE_PREFIX = "blockboard_schedule_" // e.g. blockboard_schedule_2025-10-06
 
 const DEFAULT_SETTINGS: AppSettings = {
   dayStart: 6,
@@ -18,7 +19,7 @@ export const storage = {
   // Tasks
   getTasks: (): Task[] => {
     if (typeof window === "undefined") return []
-    const data = localStorage.getItem(STORAGE_KEYS.TASKS)
+    const data = getCookie(STORAGE_KEYS.TASKS)
     if (!data) return []
     return JSON.parse(data).map((t: Task) => ({
       ...t,
@@ -29,16 +30,15 @@ export const storage = {
 
   saveTasks: (tasks: Task[]) => {
     if (typeof window === "undefined") return
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks))
+    setCookie(STORAGE_KEYS.TASKS, JSON.stringify(tasks))
   },
 
   // Schedules
   getSchedule: (date: string): DaySchedule | null => {
     if (typeof window === "undefined") return null
-    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULES)
+    const data = getCookie(SCHEDULE_COOKIE_PREFIX + date)
     if (!data) return null
-    const schedules: DaySchedule[] = JSON.parse(data)
-    const schedule = schedules.find((s) => s.date === date)
+    const schedule: DaySchedule | null = data ? JSON.parse(data) : null
     if (!schedule) return null
     return {
       ...schedule,
@@ -52,15 +52,8 @@ export const storage = {
 
   saveSchedule: (schedule: DaySchedule) => {
     if (typeof window === "undefined") return
-    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULES)
-    const schedules: DaySchedule[] = data ? JSON.parse(data) : []
-    const index = schedules.findIndex((s) => s.date === schedule.date)
-    if (index >= 0) {
-      schedules[index] = schedule
-    } else {
-      schedules.push(schedule)
-    }
-    localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(schedules))
+    // Store each day's schedule in its own cookie to avoid size limits
+    setCookie(SCHEDULE_COOKIE_PREFIX + schedule.date, JSON.stringify(schedule))
   },
 
   // Settings
@@ -74,4 +67,28 @@ export const storage = {
     if (typeof window === "undefined") return
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings))
   },
+}
+
+// --- Cookie helpers ---
+function setCookie(name: string, value: string, days = 365) {
+  if (typeof document === "undefined") return
+  const encoded = encodeURIComponent(value)
+  const maxAge = days * 24 * 60 * 60
+  document.cookie = `${name}=${encoded}; path=/; max-age=${maxAge}`
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null
+  const cookies = document.cookie ? document.cookie.split("; ") : []
+  for (const c of cookies) {
+    const [k, ...rest] = c.split("=")
+    if (k === name) {
+      try {
+        return decodeURIComponent(rest.join("="))
+      } catch {
+        return null
+      }
+    }
+  }
+  return null
 }

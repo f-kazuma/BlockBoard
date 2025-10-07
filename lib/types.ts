@@ -13,12 +13,13 @@ export interface BlockTodo {
 export interface Task {
   id: string
   title: string
-  duration: number // minutes
+  duration?: number // minutes (任意)
   status: TaskStatus
   color?: string
   notes?: string
   createdAt: Date
   completedAt?: Date
+  dueDate?: Date // 期限
 }
 
 export interface TimeBlock {

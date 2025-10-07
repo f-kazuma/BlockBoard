@@ -194,11 +194,12 @@ export default function Home() {
       const newTask: Task = {
         id: crypto.randomUUID(),
         title: taskData.title!,
-        duration: taskData.duration!,
+        duration: taskData.duration,
         status: "todo",
         color: taskData.color,
         notes: taskData.notes,
         createdAt: new Date(),
+        dueDate: taskData.dueDate,
       }
       setTasks((prev) => [...prev, newTask])
     }
@@ -248,64 +249,91 @@ export default function Home() {
 
   // Block Todos handlers
   const handleToggleBlockTodo = (blockId: string, todoId: string) => {
-    setBlocks((prev) => {
-      // Determine which todo and its new state
-      const block = prev.find((b) => b.id === blockId)
-      const todo = block?.todos?.find((t) => t.id === todoId)
-      const newDone = todo ? !todo.done : undefined
+    // Get current todo state to determine new state
+    const currentBlocks = blocks
+    const block = currentBlocks.find((b) => b.id === blockId)
+    const todo = block?.todos?.find((t) => t.id === todoId)
+    
+    if (!todo) return
 
-      // Update blocks state
-      const nextBlocks = prev.map((b) =>
-        b.id === blockId
-          ? {
-              ...b,
-              todos: (b.todos || []).map((t) =>
-                t.id === todoId ? { ...t, done: !t.done, doing: t.done ? t.doing : false } : t,
-              ),
-            }
-          : b,
-      )
+    const newDone = !todo.done
+    console.log('[DEBUG] Toggle todo:', { todo, newDone, hasTaskId: !!todo?.taskId })
 
-      // If linked to a kanban task and checked, set task status to done
-      if (todo?.taskId && newDone === true) {
+    // If linked to a kanban task, update the task status first
+    if (todo.taskId) {
+      if (newDone) {
+        // Set task to done - this will trigger the same sync logic as Kanban drag
+        console.log('[DEBUG] Setting task to done:', todo.taskId)
         setTasks((prevTasks) =>
           prevTasks.map((tsk) =>
             tsk.id === todo.taskId ? { ...tsk, status: "done" as const, completedAt: new Date() } : tsk,
           ),
         )
-        // Also mark all linked todos as done and not doing
-        setBlocks((p) =>
-          p.map((b) => ({
-            ...b,
-            todos: (b.todos || []).map((td) =>
-              td.taskId === todo.taskId ? { ...td, done: true, doing: false } : td,
-            ),
-          })),
+        // Sync ALL timeline todos linked to this task (same as Kanban logic)
+        setBlocks((prev) =>
+          prev.map((b) =>
+            b.todos && b.todos.length > 0
+              ? {
+                  ...b,
+                  todos: b.todos.map((td) =>
+                    td.taskId === todo.taskId
+                      ? {
+                          ...td,
+                          done: true,
+                          doing: false,
+                        }
+                      : td,
+                  ),
+                }
+              : b,
+          ),
         )
-      }
-
-      // If unchecked, reflect back to kanban: revert to doing if marked, otherwise todo
-      if (todo?.taskId && newDone === false) {
+      } else {
+        // Uncheck: revert to doing if marked, otherwise todo
+        const newStatus = todo.doing ? "doing" : "todo"
+        console.log('[DEBUG] Setting task back to:', newStatus)
         setTasks((prevTasks) =>
           prevTasks.map((tsk) =>
             tsk.id === todo.taskId
-              ? { ...tsk, status: (todo.doing ? "doing" : "todo") as const, completedAt: undefined }
+              ? { ...tsk, status: newStatus as const, completedAt: undefined }
               : tsk,
           ),
         )
-        // Uncheck all linked todos
-        setBlocks((p) =>
-          p.map((b) => ({
-            ...b,
-            todos: (b.todos || []).map((td) =>
-              td.taskId === todo.taskId ? { ...td, done: false } : td,
-            ),
-          })),
+        // Sync ALL timeline todos linked to this task (same as Kanban logic)
+        setBlocks((prev) =>
+          prev.map((b) =>
+            b.todos && b.todos.length > 0
+              ? {
+                  ...b,
+                  todos: b.todos.map((td) =>
+                    td.taskId === todo.taskId
+                      ? {
+                          ...td,
+                          done: false,
+                          doing: newStatus === "doing" ? true : false,
+                        }
+                      : td,
+                  ),
+                }
+              : b,
+          ),
         )
       }
-
-      return nextBlocks
-    })
+    } else {
+      // If not linked to a kanban task, just toggle the todo locally
+      setBlocks((prev) =>
+        prev.map((b) =>
+          b.id === blockId
+            ? {
+                ...b,
+                todos: (b.todos || []).map((t) =>
+                  t.id === todoId ? { ...t, done: newDone, doing: newDone ? false : t.doing } : t,
+                ),
+              }
+            : b,
+        ),
+      )
+    }
   }
 
   const handleAddBlockTodo = (blockId: string, text: string) => {

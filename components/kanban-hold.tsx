@@ -15,7 +15,7 @@ export function KanbanHoldArea({ tasks, onDragStart, onDropToHold }: KanbanHoldA
 
   return (
     <div
-      className="flex flex-col gap-2 border rounded-md p-3 bg-card/50 min-h-[140px]"
+      className="flex flex-col gap-2 border rounded-md p-3 bg-card/50 min-h-[240px]"
       onDragOver={(e) => {
         e.preventDefault()
       }}
@@ -38,8 +38,9 @@ export function KanbanHoldArea({ tasks, onDragStart, onDropToHold }: KanbanHoldA
           <Card
             key={task.id}
             draggable
+            data-kanban-card
             onDragStart={() => onDragStart(task)}
-            className="p-3 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors"
+            className="p-3 cursor-default hover:border-primary/50 transition-colors"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -56,4 +57,3 @@ export function KanbanHoldArea({ tasks, onDragStart, onDropToHold }: KanbanHoldA
     </div>
   )
 }
-
